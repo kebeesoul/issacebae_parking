@@ -1,14 +1,15 @@
 /**
  * car-parking-app/app.js
  * 차량 주차 위치 저장 앱 — 프론트엔드 전용 (localStorage)
- * 저장 키: carParkingInfoV1
+ * 저장 키: carParkingInfoV1 (집 주차), extParkingInfoV1 (외부 주차)
  */
 
 'use strict';
 
-const STORAGE_KEY = 'carParkingInfoV1';
+const STORAGE_KEY     = 'carParkingInfoV1';
+const EXT_STORAGE_KEY = 'extParkingInfoV1';
 
-// 층 코드 → 한국어 표시명
+// 층 코드 → 한국어 표시명 (집 주차)
 const FLOOR_LABEL = {
   B1: '지하 1층',
   B2: '지하 2층',
@@ -16,51 +17,74 @@ const FLOOR_LABEL = {
   B4: '지하 4층',
 };
 
-// DOM 레퍼런스
-const els = {
-  car1Floor:   () => document.getElementById('car1-floor'),
-  car2Floor:   () => document.getElementById('car2-floor'),
-  car1Result:  () => document.getElementById('car1-result'),
-  car2Result:  () => document.getElementById('car2-result'),
-  savedAt:     () => document.getElementById('saved-at'),
-  saveBtn:     () => document.getElementById('save-btn'),
-  clearBtn:    () => document.getElementById('clear-btn'),
-  feedback:    () => document.getElementById('save-feedback'),
-};
+// 외부 주차 층 옵션 (지하/지상)
+const EXT_FLOOR_UNDERGROUND = [
+  { value: 'B1', label: 'B1 — 지하 1층' },
+  { value: 'B2', label: 'B2 — 지하 2층' },
+  { value: 'B3', label: 'B3 — 지하 3층' },
+  { value: 'B4', label: 'B4 — 지하 4층' },
+  { value: 'B5', label: 'B5 — 지하 5층' },
+  { value: 'B6', label: 'B6 — 지하 6층' },
+  { value: 'B7', label: 'B7 — 지하 7층' },
+];
 
-/** localStorage에서 데이터 읽기 */
-function readStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+const EXT_FLOOR_GROUND = [
+  { value: 'G1', label: 'G1 — 지상 1층' },
+  { value: 'G2', label: 'G2 — 지상 2층' },
+  { value: 'G3', label: 'G3 — 지상 3층' },
+  { value: 'G4', label: 'G4 — 지상 4층' },
+  { value: 'G5', label: 'G5 — 지상 5층' },
+  { value: 'G6', label: 'G6 — 지상 6층' },
+  { value: 'G7', label: 'G7 — 지상 7층' },
+];
+
+// 층 코드 → 한국어 레이블 (외부)
+function extFloorLabel(code) {
+  const allOptions = [...EXT_FLOOR_UNDERGROUND, ...EXT_FLOOR_GROUND];
+  const found = allOptions.find(o => o.value === code);
+  return found ? found.label.split(' — ')[1] : code;
 }
 
-/** localStorage에 데이터 쓰기 */
-function writeStorage(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+// ── DOM refs ──
+const $ = id => document.getElementById(id);
+
+/* ════════════════ 탭 전환 ════════════════ */
+function switchTab(tab) {
+  $('panel-home').style.display = tab === 'home' ? '' : 'none';
+  $('panel-ext').style.display  = tab === 'ext'  ? '' : 'none';
+  $('tab-home').classList.toggle('active', tab === 'home');
+  $('tab-ext').classList.toggle('active',  tab === 'ext');
 }
 
-/** 저장 시각을 사용자 친화적 문자열로 변환 */
+/* ════════════════ 공통 유틸 ════════════════ */
+function readStorage(key) {
+  try { return JSON.parse(localStorage.getItem(key)) || null; }
+  catch { return null; }
+}
+
+function writeStorage(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
 function formatDate(isoStr) {
   if (!isoStr) return '—';
   const d = new Date(isoStr);
   if (isNaN(d)) return '—';
   return d.toLocaleString('ko-KR', {
-    year:   'numeric',
-    month:  '2-digit',
-    day:    '2-digit',
-    hour:   '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: false,
   });
 }
 
-/** 결과 박스 렌더링 */
-function renderResult(boxEl, floorCode, carName) {
+function showFeedback(id) {
+  const fb = $(id);
+  fb.classList.add('show');
+  setTimeout(() => fb.classList.remove('show'), 2500);
+}
+
+/* ════════════════ 집 주차 ════════════════ */
+function renderHomeResult(boxEl, floorCode, carName) {
   if (!floorCode) {
     boxEl.classList.add('empty');
     boxEl.innerHTML = `
@@ -70,7 +94,6 @@ function renderResult(boxEl, floorCode, carName) {
     `;
     return;
   }
-
   boxEl.classList.remove('empty');
   boxEl.innerHTML = `
     <span class="result-label">${carName}</span>
@@ -79,75 +102,123 @@ function renderResult(boxEl, floorCode, carName) {
   `;
 }
 
-/** 저장된 데이터를 UI에 반영 */
-function applyData(data) {
+function applyHomeData(data) {
   const car1 = data?.car1 ?? '';
   const car2 = data?.car2 ?? '';
-
-  // 셀렉트 복원
-  if (car1) els.car1Floor().value = car1;
-  if (car2) els.car2Floor().value = car2;
-
-  // 결과 박스
-  renderResult(els.car1Result(), car1, '펠리세이드');
-  renderResult(els.car2Result(), car2, '레이');
-
-  // 저장 시각
-  els.savedAt().textContent = formatDate(data?.savedAt);
+  if (car1) $('car1-floor').value = car1;
+  if (car2) $('car2-floor').value = car2;
+  renderHomeResult($('car1-result'), car1, '펠리세이드');
+  renderHomeResult($('car2-result'), car2, '레이');
+  $('saved-at').textContent = formatDate(data?.savedAt);
 }
 
-/** 초기 상태(저장 없음)로 UI 리셋 */
-function resetUI() {
-  els.car1Floor().value = '';
-  els.car2Floor().value = '';
-  renderResult(els.car1Result(), '', '펠리세이드');
-  renderResult(els.car2Result(), '', '레이');
-  els.savedAt().textContent = '—';
+function resetHomeUI() {
+  $('car1-floor').value = '';
+  $('car2-floor').value = '';
+  renderHomeResult($('car1-result'), '', '펠리세이드');
+  renderHomeResult($('car2-result'), '', '레이');
+  $('saved-at').textContent = '—';
 }
 
-/** 완료 피드백 잠깐 보여주기 */
-function showFeedback() {
-  const fb = els.feedback();
-  fb.classList.add('show');
-  setTimeout(() => fb.classList.remove('show'), 2500);
-}
-
-/* ── 이벤트 핸들러 ── */
-
-function onSave() {
-  const car1 = els.car1Floor().value;
-  const car2 = els.car2Floor().value;
-
+function onHomeSave() {
   const data = {
-    car1: car1,
-    car2: car2,
+    car1: $('car1-floor').value,
+    car2: $('car2-floor').value,
     savedAt: new Date().toISOString(),
   };
-
-  writeStorage(data);
-  applyData(data);
-  showFeedback();
+  writeStorage(STORAGE_KEY, data);
+  applyHomeData(data);
+  showFeedback('save-feedback');
 }
 
-function onClear() {
-  if (!confirm('저장된 주차 정보를 모두 삭제하시겠습니까?')) return;
+function onHomeClear() {
+  if (!confirm('저장된 집 주차 정보를 모두 삭제하시겠습니까?')) return;
   localStorage.removeItem(STORAGE_KEY);
-  resetUI();
+  resetHomeUI();
 }
 
-/* ── 초기화 ── */
-
-function loadData() {
-  const data = readStorage();
-  if (data) {
-    applyData(data);
-  } else {
-    resetUI();
-  }
+/* ════════════════ 외부 주차 ════════════════ */
+function buildExtFloorOptions(isGround, selectedValue) {
+  const options = isGround ? EXT_FLOOR_GROUND : EXT_FLOOR_UNDERGROUND;
+  const sel = $('ext-floor');
+  sel.innerHTML = '<option value="">층 선택</option>';
+  options.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    opt.textContent = o.label;
+    if (o.value === selectedValue) opt.selected = true;
+    sel.appendChild(opt);
+  });
 }
 
+function applyExtData(data) {
+  const isGround = data?.isGround ?? false;
+  $('ext-ground-check').checked = isGround;
+  buildExtFloorOptions(isGround, data?.floor ?? '');
+  $('ext-pillar').value = data?.pillar ?? '';
+  renderExtResult(data?.floor ?? '', data?.pillar ?? '', isGround);
+  $('ext-saved-at').textContent = formatDate(data?.savedAt);
+}
+
+function renderExtResult(floor, pillar, isGround) {
+  const box = $('ext-result');
+  const hasData = floor || pillar;
+  box.classList.toggle('empty', !hasData);
+
+  $('ext-result-floor').textContent = floor || '—';
+  $('ext-result-floor-sub').textContent = floor ? extFloorLabel(floor) : '저장된 층 없음';
+  $('ext-result-pillar').textContent = pillar || '—';
+  $('ext-result-pillar-sub').textContent = pillar ? (floor ? extFloorLabel(floor) + ' · ' + pillar + '번 기둥' : pillar + '번 기둥') : '저장된 기둥 없음';
+}
+
+function resetExtUI() {
+  $('ext-ground-check').checked = false;
+  buildExtFloorOptions(false, '');
+  $('ext-pillar').value = '';
+  renderExtResult('', '', false);
+  $('ext-saved-at').textContent = '—';
+}
+
+function onExtSave() {
+  const floor   = $('ext-floor').value;
+  const pillar  = $('ext-pillar').value.trim().toUpperCase();
+  const isGround = $('ext-ground-check').checked;
+
+  const data = { floor, pillar, isGround, savedAt: new Date().toISOString() };
+  writeStorage(EXT_STORAGE_KEY, data);
+  applyExtData(data);
+  showFeedback('ext-save-feedback');
+}
+
+function onExtClear() {
+  if (!confirm('저장된 외부 주차 정보를 삭제하시겠습니까?')) return;
+  localStorage.removeItem(EXT_STORAGE_KEY);
+  resetExtUI();
+}
+
+/* ════════════════ 초기화 ════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-  els.saveBtn().addEventListener('click', onSave);
-  els.clearBtn().addEventListener('click', onClear);
+  // 집 주차 데이터 로드
+  const homeData = readStorage(STORAGE_KEY);
+  homeData ? applyHomeData(homeData) : resetHomeUI();
+
+  // 외부 주차 데이터 로드
+  const extData = readStorage(EXT_STORAGE_KEY);
+  extData ? applyExtData(extData) : resetExtUI();
+
+  // 집 주차 이벤트
+  $('save-btn').addEventListener('click', onHomeSave);
+  $('clear-btn').addEventListener('click', onHomeClear);
+
+  // 외부 주차 이벤트
+  $('ext-save-btn').addEventListener('click', onExtSave);
+  $('ext-clear-btn').addEventListener('click', onExtClear);
+
+  // 지상 토글
+  $('ext-ground-check').addEventListener('change', () => {
+    const isGround = $('ext-ground-check').checked;
+    buildExtFloorOptions(isGround, '');
+  });
+
+  // 탭 전환은 HTML onclick으로 처리 (switchTab 전역 함수)
 });

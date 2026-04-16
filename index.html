@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="펠리세이드·레이 주차 층(B1~B4)을 브라우저에 저장하고 다음 날 즉시 확인하는 차량 주차 위치 관리 앱" />
+  <meta name="description" content="집 주차 및 외부 주차 위치를 브라우저에 저장하고 확인하는 차량 주차 위치 관리 앱" />
   <title>차량 주차 위치 — HYPLE</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -17,9 +17,8 @@
         HYPLE
       </div>
       <nav class="nav-tabs" aria-label="탭 메뉴">
-        <button class="nav-tab active" type="button" id="tab-parking">주차 관리</button>
-        <button class="nav-tab" type="button" id="tab-info"
-                onclick="alert('추가 기능 준비 중입니다.')">정보</button>
+        <button class="nav-tab active" type="button" id="tab-home" onclick="switchTab('home')">🏠 집 주차</button>
+        <button class="nav-tab" type="button" id="tab-ext" onclick="switchTab('ext')">🅿️ 외부 주차</button>
       </nav>
     </div>
   </header>
@@ -41,13 +40,13 @@
       </p>
     </section>
 
-    <!-- 메인 카드 -->
-    <section class="card" aria-label="주차 위치 입력 카드">
+    <!-- ══════════ 집 주차 탭 ══════════ -->
+    <section id="panel-home" class="tab-panel card" aria-label="집 주차 위치 입력 카드">
 
       <!-- 카드 헤더 -->
       <div class="card-header">
         <div class="step-badge" aria-label="Step 1">1</div>
-        <span class="card-header-text">주차 층 선택 및 저장</span>
+        <span class="card-header-text">집 주차 층 선택 및 저장</span>
       </div>
 
       <!-- 카드 본문 -->
@@ -126,7 +125,113 @@
         </div>
 
       </div><!-- /card-body -->
-    </section><!-- /card -->
+    </section><!-- /panel-home -->
+
+    <!-- ══════════ 외부 주차 탭 ══════════ -->
+    <section id="panel-ext" class="tab-panel card" aria-label="외부 주차 위치 입력 카드" style="display:none;">
+
+      <!-- 카드 헤더 -->
+      <div class="card-header">
+        <div class="step-badge ext-badge" aria-label="Step 1">P</div>
+        <span class="card-header-text">외부 주차 위치 기록</span>
+      </div>
+
+      <!-- 카드 본문 -->
+      <div class="card-body">
+
+        <!-- 층 선택 + 지상 Toggle -->
+        <div class="ext-row">
+          <div class="ext-field" style="flex:1;">
+            <div class="ext-label-row">
+              <label class="field-label" for="ext-floor">
+                <span aria-hidden="true">🏢</span>
+                주차 층
+              </label>
+              <!-- 지상 체크박스 -->
+              <label class="ground-toggle" for="ext-ground-check">
+                <input type="checkbox" id="ext-ground-check" />
+                <span class="toggle-track">
+                  <span class="toggle-thumb"></span>
+                </span>
+                <span class="toggle-label">지상</span>
+              </label>
+            </div>
+            <select class="floor-select" id="ext-floor" aria-label="외부 주차 층 선택">
+              <option value="">층 선택</option>
+              <option value="B1">B1 — 지하 1층</option>
+              <option value="B2">B2 — 지하 2층</option>
+              <option value="B3">B3 — 지하 3층</option>
+              <option value="B4">B4 — 지하 4층</option>
+              <option value="B5">B5 — 지하 5층</option>
+              <option value="B6">B6 — 지하 6층</option>
+              <option value="B7">B7 — 지하 7층</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 기둥 번호 입력 -->
+        <div class="ext-field" style="margin-top:20px;">
+          <label class="field-label" for="ext-pillar">
+            <span aria-hidden="true">🔩</span>
+            기둥 번호
+          </label>
+          <input
+            type="text"
+            class="pillar-input"
+            id="ext-pillar"
+            placeholder="예) A3, B12"
+            maxlength="5"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            aria-label="기둥 번호 입력"
+          />
+        </div>
+
+        <!-- 결과 박스 -->
+        <div class="ext-result-box empty" id="ext-result" role="status" aria-live="polite" style="margin-top:24px;">
+          <div class="ext-result-inner">
+            <div class="ext-result-item">
+              <span class="result-label">주차 층</span>
+              <span class="result-value" id="ext-result-floor">—</span>
+              <span class="result-sub" id="ext-result-floor-sub">저장된 층 없음</span>
+            </div>
+            <div class="ext-result-divider"></div>
+            <div class="ext-result-item">
+              <span class="result-label">기둥 위치</span>
+              <span class="result-value pillar-value" id="ext-result-pillar">—</span>
+              <span class="result-sub" id="ext-result-pillar-sub">저장된 기둥 없음</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 마지막 저장 시각 -->
+        <div class="saved-at-row" style="margin-top:16px;" aria-label="마지막 저장 시각">
+          <span class="icon" aria-hidden="true">🕐</span>
+          <span>마지막 저장:</span>
+          <span id="ext-saved-at">—</span>
+        </div>
+
+        <!-- 버튼 행 -->
+        <div class="btn-row">
+          <button class="btn btn-primary" id="ext-save-btn" type="button">
+            <span aria-hidden="true">💾</span>
+            저장하기
+          </button>
+          <button class="btn btn-ghost" id="ext-clear-btn" type="button" aria-label="외부 주차 정보 초기화">
+            <span aria-hidden="true">🗑️</span>
+            초기화
+          </button>
+        </div>
+
+        <!-- 저장 완료 피드백 -->
+        <div class="save-feedback" id="ext-save-feedback" role="alert" aria-live="assertive">
+          <span aria-hidden="true">✅</span>
+          외부 주차 위치가 저장되었습니다!
+        </div>
+
+      </div><!-- /card-body -->
+    </section><!-- /panel-ext -->
 
     <!-- 안내 스트립 -->
     <div class="info-strip" role="note">
