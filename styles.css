@@ -61,23 +61,12 @@ body {
   height: 60px;
 }
 
-.logo {
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -.5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.logo-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  display: inline-block;
-  box-shadow: 0 0 8px var(--accent);
+.publisher {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .nav-tabs {
@@ -123,21 +112,6 @@ body {
 /* ── TITLE SECTION ── */
 .title-section {
   margin-bottom: 28px;
-}
-
-.brand-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  background: rgba(79,110,247,.12);
-  padding: 4px 10px;
-  border-radius: 99px;
-  margin-bottom: 14px;
 }
 
 .page-title {
