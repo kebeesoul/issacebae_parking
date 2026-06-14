@@ -77,10 +77,12 @@ function formatDate(isoStr) {
   });
 }
 
+const feedbackTimers = {};
 function showFeedback(id) {
   const fb = $(id);
   fb.classList.add('show');
-  setTimeout(() => fb.classList.remove('show'), 2500);
+  clearTimeout(feedbackTimers[id]);
+  feedbackTimers[id] = setTimeout(() => fb.classList.remove('show'), 2500);
 }
 
 /* ════════════════ 집 주차 ════════════════ */
@@ -105,8 +107,8 @@ function renderHomeResult(boxEl, floorCode, carName) {
 function applyHomeData(data) {
   const car1 = data?.car1 ?? '';
   const car2 = data?.car2 ?? '';
-  if (car1) $('car1-floor').value = car1;
-  if (car2) $('car2-floor').value = car2;
+  $('car1-floor').value = car1;
+  $('car2-floor').value = car2;
   renderHomeResult($('car1-result'), car1, '펠리세이드');
   renderHomeResult($('car2-result'), car2, '레이');
   $('saved-at').textContent = formatDate(data?.savedAt);
@@ -121,9 +123,17 @@ function resetHomeUI() {
 }
 
 function onHomeSave() {
+  const car1 = $('car1-floor').value;
+  const car2 = $('car2-floor').value;
+
+  if (!car1 && !car2) {
+    alert('저장할 주차 층을 한 곳 이상 선택해 주세요.');
+    return;
+  }
+
   const data = {
-    car1: $('car1-floor').value,
-    car2: $('car2-floor').value,
+    car1,
+    car2,
     savedAt: new Date().toISOString(),
   };
   writeStorage(STORAGE_KEY, data);
@@ -183,6 +193,11 @@ function onExtSave() {
   const floor   = $('ext-floor').value;
   const pillar  = $('ext-pillar').value.trim().toUpperCase();
   const isGround = $('ext-ground-check').checked;
+
+  if (!floor && !pillar) {
+    alert('저장할 주차 층 또는 기둥 번호를 입력해 주세요.');
+    return;
+  }
 
   const data = { floor, pillar, isGround, savedAt: new Date().toISOString() };
   writeStorage(EXT_STORAGE_KEY, data);

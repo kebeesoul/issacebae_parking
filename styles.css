@@ -368,8 +368,12 @@ body {
   cursor: pointer;
   border: none;
   transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-  outline: none;
   user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .btn-primary {
@@ -417,13 +421,6 @@ body {
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── DIVIDER ── */
-.divider {
-  height: 1px;
-  background: var(--border);
-  margin: 24px 0;
 }
 
 /* ── INFO FOOTER ── */
