@@ -211,6 +211,66 @@ function onExtClear() {
   resetExtUI();
 }
 
+/* ════════════════ NFC 태그 진입 자동입력 ════════════════ */
+// 태그에 굽는 URL 예: https://issacebae-parking.vercel.app/?car=ray
+const CAR_ALIASES = {
+  palisade: 'car1', pelisade: 'car1', car1: 'car1',   // 펠리세이드
+  ray: 'car2', car2: 'car2',                           // 레이
+};
+
+const CAR_META = {
+  car1: { selectId: 'car1-floor', resultId: 'car1-result', name: '펠리세이드', icon: '🚙' },
+  car2: { selectId: 'car2-floor', resultId: 'car2-result', name: '레이',       icon: '🚗' },
+};
+
+function showNfcHint(meta) {
+  let hint = $('nfc-hint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'nfc-hint';
+    hint.className = 'nfc-hint';
+    hint.setAttribute('role', 'status');
+    document.querySelector('.page').prepend(hint);
+  }
+  hint.innerHTML =
+    `<span aria-hidden="true">${meta.icon}</span> ${meta.name} 주차함 · <strong>층만 선택하면 자동 저장</strong>`;
+  hint.classList.add('show');
+}
+
+function hideNfcHint() {
+  const hint = $('nfc-hint');
+  if (hint) hint.classList.remove('show');
+}
+
+function handleNfcEntry() {
+  const carParam = (new URLSearchParams(location.search).get('car') || '').trim().toLowerCase();
+  if (!carParam) return;
+
+  const carKey = CAR_ALIASES[carParam];
+  if (!carKey) return;
+  const meta = CAR_META[carKey];
+
+  switchTab('home');
+
+  const select    = $(meta.selectId);
+  const resultBox = $(meta.resultId);
+
+  resultBox.classList.add('nfc-active');
+  showNfcHint(meta);
+
+  select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => select.focus(), 450);
+
+  select.addEventListener('change', function onPick() {
+    if (!select.value) return;
+    onHomeSave();
+    resultBox.classList.remove('nfc-active');
+    hideNfcHint();
+    select.removeEventListener('change', onPick);
+    history.replaceState(null, '', location.pathname);
+  });
+}
+
 /* ════════════════ 초기화 ════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   // 집 주차 데이터 로드
@@ -236,4 +296,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 탭 전환은 HTML onclick으로 처리 (switchTab 전역 함수)
+  handleNfcEntry();
 });
