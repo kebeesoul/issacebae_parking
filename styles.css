@@ -61,23 +61,12 @@ body {
   height: 60px;
 }
 
-.logo {
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -.5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.logo-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  display: inline-block;
-  box-shadow: 0 0 8px var(--accent);
+.publisher {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .nav-tabs {
@@ -123,21 +112,6 @@ body {
 /* ── TITLE SECTION ── */
 .title-section {
   margin-bottom: 28px;
-}
-
-.brand-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  background: rgba(79,110,247,.12);
-  padding: 4px 10px;
-  border-radius: 99px;
-  margin-bottom: 14px;
 }
 
 .page-title {
@@ -368,8 +342,12 @@ body {
   cursor: pointer;
   border: none;
   transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-  outline: none;
   user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .btn-primary {
@@ -417,13 +395,6 @@ body {
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── DIVIDER ── */
-.divider {
-  height: 1px;
-  background: var(--border);
-  margin: 24px 0;
 }
 
 /* ── INFO FOOTER ── */
@@ -614,4 +585,33 @@ body {
 .ext-result-box.empty .pillar-value {
   font-size: 16px;
   letter-spacing: 0;
+}
+
+/* ── NFC 진입 안내 배너 ── */
+.nfc-hint {
+  max-width: 800px;
+  margin: 16px auto -8px;
+  padding: 12px 18px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  border: 1px solid rgba(79,110,247,.25);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity var(--transition), transform var(--transition);
+}
+.nfc-hint.show { opacity: 1; transform: translateY(0); }
+
+/* ── NFC로 지목된 차량 카드 강조 ── */
+.result-box.nfc-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  animation: nfcPulse 1.2s ease-in-out infinite;
+}
+@keyframes nfcPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79,110,247,.35); }
+  50%      { box-shadow: 0 0 0 8px rgba(79,110,247,0); }
 }

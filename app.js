@@ -77,10 +77,12 @@ function formatDate(isoStr) {
   });
 }
 
+const feedbackTimers = {};
 function showFeedback(id) {
   const fb = $(id);
   fb.classList.add('show');
-  setTimeout(() => fb.classList.remove('show'), 2500);
+  clearTimeout(feedbackTimers[id]);
+  feedbackTimers[id] = setTimeout(() => fb.classList.remove('show'), 2500);
 }
 
 /* ════════════════ 집 주차 ════════════════ */
@@ -105,8 +107,8 @@ function renderHomeResult(boxEl, floorCode, carName) {
 function applyHomeData(data) {
   const car1 = data?.car1 ?? '';
   const car2 = data?.car2 ?? '';
-  if (car1) $('car1-floor').value = car1;
-  if (car2) $('car2-floor').value = car2;
+  $('car1-floor').value = car1;
+  $('car2-floor').value = car2;
   renderHomeResult($('car1-result'), car1, '펠리세이드');
   renderHomeResult($('car2-result'), car2, '레이');
   $('saved-at').textContent = formatDate(data?.savedAt);
@@ -121,9 +123,17 @@ function resetHomeUI() {
 }
 
 function onHomeSave() {
+  const car1 = $('car1-floor').value;
+  const car2 = $('car2-floor').value;
+
+  if (!car1 && !car2) {
+    alert('저장할 주차 층을 한 곳 이상 선택해 주세요.');
+    return;
+  }
+
   const data = {
-    car1: $('car1-floor').value,
-    car2: $('car2-floor').value,
+    car1,
+    car2,
     savedAt: new Date().toISOString(),
   };
   writeStorage(STORAGE_KEY, data);
@@ -184,6 +194,11 @@ function onExtSave() {
   const pillar  = $('ext-pillar').value.trim().toUpperCase();
   const isGround = $('ext-ground-check').checked;
 
+  if (!floor && !pillar) {
+    alert('저장할 주차 층 또는 기둥 번호를 입력해 주세요.');
+    return;
+  }
+
   const data = { floor, pillar, isGround, savedAt: new Date().toISOString() };
   writeStorage(EXT_STORAGE_KEY, data);
   applyExtData(data);
@@ -194,6 +209,66 @@ function onExtClear() {
   if (!confirm('저장된 외부 주차 정보를 삭제하시겠습니까?')) return;
   localStorage.removeItem(EXT_STORAGE_KEY);
   resetExtUI();
+}
+
+/* ════════════════ NFC 태그 진입 자동입력 ════════════════ */
+// 태그에 굽는 URL 예: https://issacebae-parking.vercel.app/?car=ray
+const CAR_ALIASES = {
+  palisade: 'car1', pelisade: 'car1', car1: 'car1',   // 펠리세이드
+  ray: 'car2', car2: 'car2',                           // 레이
+};
+
+const CAR_META = {
+  car1: { selectId: 'car1-floor', resultId: 'car1-result', name: '펠리세이드', icon: '🚙' },
+  car2: { selectId: 'car2-floor', resultId: 'car2-result', name: '레이',       icon: '🚗' },
+};
+
+function showNfcHint(meta) {
+  let hint = $('nfc-hint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'nfc-hint';
+    hint.className = 'nfc-hint';
+    hint.setAttribute('role', 'status');
+    document.querySelector('.page').prepend(hint);
+  }
+  hint.innerHTML =
+    `<span aria-hidden="true">${meta.icon}</span> ${meta.name} 주차함 · <strong>층만 선택하면 자동 저장</strong>`;
+  hint.classList.add('show');
+}
+
+function hideNfcHint() {
+  const hint = $('nfc-hint');
+  if (hint) hint.classList.remove('show');
+}
+
+function handleNfcEntry() {
+  const carParam = (new URLSearchParams(location.search).get('car') || '').trim().toLowerCase();
+  if (!carParam) return;
+
+  const carKey = CAR_ALIASES[carParam];
+  if (!carKey) return;
+  const meta = CAR_META[carKey];
+
+  switchTab('home');
+
+  const select    = $(meta.selectId);
+  const resultBox = $(meta.resultId);
+
+  resultBox.classList.add('nfc-active');
+  showNfcHint(meta);
+
+  select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => select.focus(), 450);
+
+  select.addEventListener('change', function onPick() {
+    if (!select.value) return;
+    onHomeSave();
+    resultBox.classList.remove('nfc-active');
+    hideNfcHint();
+    select.removeEventListener('change', onPick);
+    history.replaceState(null, '', location.pathname);
+  });
 }
 
 /* ════════════════ 초기화 ════════════════ */
@@ -221,4 +296,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 탭 전환은 HTML onclick으로 처리 (switchTab 전역 함수)
+  handleNfcEntry();
 });
